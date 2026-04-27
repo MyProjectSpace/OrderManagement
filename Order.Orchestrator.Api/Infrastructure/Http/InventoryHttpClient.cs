@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Mvc;
 using Order.Orchestrator.Application.Abstractions;
 using Shared.Contracts;
 
@@ -24,6 +25,16 @@ public class InventoryHttpClient(HttpClient httpClient) : IInventoryClient
         }
 
         using var response = await httpClient.SendAsync(request, ct);
+
+        if ((int)response.StatusCode is 400 or 404 or 409)
+        {
+            var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(cancellationToken: ct);
+            throw new InventoryClientPoisonException(
+                (int)response.StatusCode,
+                problem?.Title ?? response.ReasonPhrase ?? "Inventory rejected request",
+                problem?.Detail ?? string.Empty);
+        }
+
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<InventoryOperationResult>(cancellationToken: ct);
         return result ?? throw new InvalidOperationException("Empty inventory response");

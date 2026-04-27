@@ -2,6 +2,7 @@ using System.Diagnostics;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Order.Orchestrator.Infrastructure.Http;
 
 namespace Order.Orchestrator.Api.ExceptionHandling;
 
@@ -12,6 +13,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         var (status, title) = exception switch
         {
             ValidationException => (StatusCodes.Status400BadRequest, "Validation failed"),
+            InventoryClientPoisonException ex => (ex.StatusCode, ex.Title),
             HttpRequestException => (StatusCodes.Status502BadGateway, "Downstream service error"),
             TaskCanceledException => (StatusCodes.Status504GatewayTimeout, "Downstream timeout"),
             _ => (0, string.Empty)

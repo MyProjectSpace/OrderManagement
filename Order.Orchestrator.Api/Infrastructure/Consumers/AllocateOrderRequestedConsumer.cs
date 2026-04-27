@@ -3,6 +3,7 @@ using MassTransit;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Order.Orchestrator.Application.Commands;
+using Order.Orchestrator.Infrastructure.Http;
 using Shared.Contracts;
 
 namespace Order.Orchestrator.Infrastructure.Consumers;
@@ -36,6 +37,7 @@ public class AllocateOrderRequestedConsumerDefinition : ConsumerDefinition<Alloc
         {
             r.Exponential(3, TimeSpan.FromMilliseconds(200), TimeSpan.FromSeconds(5), TimeSpan.FromMilliseconds(200));
             r.Ignore<ValidationException>();
+            r.Ignore<InventoryClientPoisonException>();
         });
         endpointConfigurator.PrefetchCount = 32;
         endpointConfigurator.ConcurrentMessageLimit = 8;

@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Order.Orchestrator.Application.Commands;
 using Order.Orchestrator.Infrastructure.Consumers;
+using Order.Orchestrator.Infrastructure.Http;
 using Shared.Contracts;
 
 namespace Order.Orchestrator.Tests.Consumers;
@@ -78,5 +79,36 @@ public class PaymentConfirmedConsumerTests
 
         // Initial attempt + 3 retries = 4 invocations of the mediator.
         attempts.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task QueueProcessor_PoisonFailure_DeadLettersImmediately()
+    {
+        var attempts = 0;
+        var mediator = new Mock<ISender>();
+        mediator
+            .Setup(m => m.Send(It.IsAny<ReserveInventoryCommand>(), It.IsAny<CancellationToken>()))
+            .Callback(() => Interlocked.Increment(ref attempts))
+            .ThrowsAsync(new InventoryClientPoisonException(404, "Unknown SKU", "ITEM-Z"));
+
+        await using var provider = new ServiceCollection()
+            .AddSingleton(mediator.Object)
+            .AddMassTransitTestHarness(cfg =>
+            {
+                cfg.AddConsumer<PaymentConfirmedConsumer, PaymentConfirmedConsumerDefinition>();
+            })
+            .BuildServiceProvider(true);
+
+        var harness = provider.GetRequiredService<ITestHarness>();
+        harness.TestTimeout = TimeSpan.FromSeconds(30);
+        await harness.Start();
+
+        var evt = new PaymentConfirmedEvent("ORD-POISON", "CUST-1", ["ITEM-Z"], 1m, DateTime.UtcNow);
+        await harness.Bus.Publish(evt);
+
+        (await harness.Published.Any<Fault<PaymentConfirmedEvent>>()).Should().BeTrue(
+            "poison failures must publish a Fault<T> on the first attempt");
+
+        attempts.Should().Be(1, "poison failures must bypass the retry policy");
     }
 }
