@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="MassTransit.TestFramework" />
+    <PackageReference Include="WireMock.Net" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Order.Orchestrator.Api\Order.Orchestrator.Api.csproj" Aliases="global,OrchestratorApi" />
+    <ProjectReference Include="..\Inventory.Service.Api\Inventory.Service.Api.csproj" Aliases="global,InventoryApi" />
+    <ProjectReference Include="..\Oms.Api\Oms.Api.csproj" Aliases="global,OmsApi" />
+    <ProjectReference Include="..\Payment.Gateway.Api\Payment.Gateway.Api.csproj" Aliases="global,PaymentGatewayApi" />
+    <ProjectReference Include="..\Shared.Contracts\Shared.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>
